@@ -27,7 +27,8 @@ class Fetch implements Transport {
   init: FetchTransportInit;
   reader: ReadableStreamReader;
   metadata: Metadata;
-  controller: AbortController | undefined = (self as any).AbortController && new AbortController();
+  controller: AbortController | undefined =
+    typeof AbortController !== "undefined" ? new AbortController() : undefined;
 
   constructor(transportOptions: TransportOptions, init: FetchTransportInit, fetch) {
     this.options = transportOptions;
