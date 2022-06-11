@@ -2,18 +2,20 @@ import {Metadata} from "../../metadata";
 import {Transport, TransportFactory, TransportOptions} from "../Transport";
 import {debug} from "../../debug";
 
+const systemFetch = fetch
+
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type FetchTransportInit = Omit<RequestInit, "headers" | "method" | "body" | "signal">;
 
-export function FetchReadableStreamTransport(init: FetchTransportInit): TransportFactory {
+export function FetchReadableStreamTransport(init: FetchTransportInit, fetch = null): TransportFactory {
   return (opts: TransportOptions) => {
-    return fetchRequest(opts, init);
+    return fetchRequest(opts, init, fetch);
   }
 }
 
-function fetchRequest(options: TransportOptions, init: FetchTransportInit): Transport {
+function fetchRequest(options: TransportOptions, init: FetchTransportInit, fetch): Transport {
   options.debug && debug("fetchRequest", options);
-  return new Fetch(options, init);
+  return new Fetch(options, init, fetch);
 }
 
 declare const Response: any;
@@ -27,9 +29,10 @@ class Fetch implements Transport {
   metadata: Metadata;
   controller: AbortController | undefined = (self as any).AbortController && new AbortController();
 
-  constructor(transportOptions: TransportOptions, init: FetchTransportInit) {
+  constructor(transportOptions: TransportOptions, init: FetchTransportInit, fetch) {
     this.options = transportOptions;
     this.init = init;
+    this.fetch = fetch || systemFetch
   }
 
   pump(readerArg: ReadableStreamReader, res: Response) {
@@ -65,7 +68,7 @@ class Fetch implements Transport {
   }
 
   send(msgBytes: Uint8Array) {
-    fetch(this.options.url, {
+    this.fetch(this.options.url, {
       ...this.init,
       headers: this.metadata.toHeaders(),
       method: "POST",
